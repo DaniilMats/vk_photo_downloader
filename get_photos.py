@@ -3,6 +3,8 @@ from threading import Thread
 from redis import Redis
 from vk_token import TOKEN
 from typing import Generator, Optional
+import logging
+import os
 
 
 class VkWrapper:
@@ -29,9 +31,10 @@ class VkWrapper:
         try:
             r: requests.Response = requests.get(VkWrapper.url, params=params)
         except Exception as e:
-            print(f"Не удалось выполнить запрос к серверу по следующей причине: {e}")
+            logging.error(f"Не удалось выполнить запрос к серверу по следующей причине: {e}")
         else:
             items: list = r.json()['response']["items"]
+            logging.info(f"Получено {len(items)} ссылок")
             for item in items:
                 yield item['photo_1280']
 
@@ -50,10 +53,13 @@ class ImgGetter:
         Подключается к редису и сохраняет файлы из него.
         :return: None
         """
+        path: str = "/photos"
+        os.mkdir(path)
         with Redis(host="redis") as redis:
             for key in self.keys:
-                with open(f"{key}.jpg", "wb") as f:
+                with open(f"./photos/{key}.jpg", "wb") as f:
                     f.write(redis.get(key))
+                    logging.info(f"Создан файл {key}.jpg")
 
 
 class Handler(Thread):
@@ -77,10 +83,11 @@ class Handler(Thread):
         try:
             r: requests.Response = requests.get(self.url)
         except Exception as e:
-            print(f"Не удалось выполнить запрос к серверу по следующей причине: {e}")
+            logging.error(f"Не удалось выполнить запрос к серверу по следующей причине: {e}")
         else:
             with Redis(host="redis") as redis:
                 redis.set(self.name, r.content)
+                logging.info(f"Фотография {self.name} загружена в редис")
 
 
 def main() -> set:
@@ -107,6 +114,7 @@ def main() -> set:
 
 if __name__ == "__main__":
     # запускаем главную функцию и грузим все в редис
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO )
     names: set = main()
 
     # создаем экземпляр класса, который будет грузить для нас фотки из редиса
