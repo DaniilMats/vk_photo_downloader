@@ -53,7 +53,7 @@ class ImgGetter:
         Подключается к редису и сохраняет файлы из него.
         :return: None
         """
-        path: str = "/photos"
+        path: str = "./photos"
         os.mkdir(path)
         with Redis(host="redis") as redis:
             for key in self.keys:
@@ -114,7 +114,8 @@ def main() -> set:
 
 if __name__ == "__main__":
     # запускаем главную функцию и грузим все в редис
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO )
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        level=logging.INFO)
     names: set = main()
 
     # создаем экземпляр класса, который будет грузить для нас фотки из редиса
